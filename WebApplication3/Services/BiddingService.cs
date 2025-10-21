@@ -195,12 +195,11 @@ namespace AuctionHouse.API.Services
             }).ToList();
         }
 
-        public async Task<List<UserBidDto>> GetUserBidsAsync(int userId, int page = 1, int pageSize = 20, string status = null)
+        public async Task<List<UserBidDto>> GetUserBidsAsync(int userId, int page = 1, int pageSize = 20, string? status = null)
         {
             IQueryable<Bid> query = _context.Bids
                 .Where(b => b.BidderId == userId)
-                .Include(b => b.Auction)
-                .ThenInclude(a => a.Images);
+                .Include(b => b.Auction);
 
             // Filter by status if provided
             if (!string.IsNullOrEmpty(status))
@@ -236,9 +235,7 @@ namespace AuctionHouse.API.Services
                 IsWinningBid = b.IsWinningBid,
                 AuctionEndTime = b.Auction.EndTime,
                 AuctionCurrentPrice = b.Auction.CurrentPrice,
-                AuctionStatus = b.Auction.EndTime <= DateTime.UtcNow ? "Ended" : "Active",
-                PrimaryImageUrl = b.Auction.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? 
-                                 b.Auction.Images.FirstOrDefault()?.ImageUrl ?? ""
+                AuctionStatus = b.Auction.EndTime <= DateTime.UtcNow ? "Ended" : "Active"
             }).ToList();
         }
 
@@ -249,7 +246,6 @@ namespace AuctionHouse.API.Services
             var winningBids = await _context.Bids
                 .Where(b => b.BidderId == userId && b.IsWinningBid && b.Auction.EndTime <= now)
                 .Include(b => b.Auction)
-                .ThenInclude(a => a.Images)
                 .Include(b => b.Auction.Seller)
                 .OrderByDescending(b => b.Auction.EndTime)
                 .Skip((page - 1) * pageSize)
@@ -265,8 +261,6 @@ namespace AuctionHouse.API.Services
                 AuctionEndTime = b.Auction.EndTime,
                 SellerName = $"{b.Auction.Seller.FirstName} {b.Auction.Seller.LastName}",
                 SellerEmail = b.Auction.Seller.Email,
-                PrimaryImageUrl = b.Auction.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? 
-                                 b.Auction.Images.FirstOrDefault()?.ImageUrl ?? "",
                 Location = b.Auction.Location,
                 ShippingInfo = b.Auction.ShippingInfo
             }).ToList();

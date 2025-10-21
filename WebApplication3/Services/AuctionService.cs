@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using AuctionHouse.API.Data;
 using AuctionHouse.API.Models;
 using AuctionHouse.API.DTOs;
+using WebApplication3.DTOs;
 
 namespace AuctionHouse.API.Services
 {
@@ -9,7 +10,7 @@ namespace AuctionHouse.API.Services
     {
         Task<AuctionResponseDto> CreateAuctionAsync(CreateAuctionDto createAuctionDto, int sellerId);
         Task<AuctionResponseDto> GetAuctionByIdAsync(int auctionId);
-        Task<List<AuctionListDto>> GetAuctionsAsync(int page = 1, int pageSize = 20, string category = null, string search = null);
+        Task<List<AuctionListDto>> GetAuctionsAsync(int page = 1, int pageSize = 20, string? category = null, string? search = null);
         Task<List<AuctionListDto>> GetSellerAuctionsAsync(int sellerId, int page = 1, int pageSize = 20);
         Task<AuctionResponseDto> UpdateAuctionAsync(int auctionId, UpdateAuctionDto updateAuctionDto, int sellerId);
         Task<bool> DeleteAuctionAsync(int auctionId, int sellerId);
@@ -105,23 +106,6 @@ namespace AuctionHouse.API.Services
                 _context.Auctions.Add(auction);
                 await _context.SaveChangesAsync();
 
-                // Add images if provided
-                if (createAuctionDto.Images != null && createAuctionDto.Images.Any())
-                {
-                    var images = createAuctionDto.Images.Select((img, index) => new AuctionImage
-                    {
-                        AuctionId = auction.AuctionId,
-                        ImageUrl = img.ImageUrl?.Trim(),
-                        AltText = img.AltText?.Trim() ?? auction.Title,
-                        IsPrimary = img.IsPrimary || index == 0, // Make first image primary if none specified
-                        DisplayOrder = img.DisplayOrder > 0 ? img.DisplayOrder : index + 1,
-                        CreatedAt = DateTime.UtcNow
-                    }).ToList();
-
-                    _context.AuctionImages.AddRange(images);
-                    await _context.SaveChangesAsync();
-                }
-
                 await transaction.CommitAsync();
                 return await GetAuctionByIdAsync(auction.AuctionId);
             }
@@ -136,8 +120,8 @@ namespace AuctionHouse.API.Services
         {
             var auction = await _context.Auctions
                 .Include(a => a.Seller)
-                .Include(a => a.Images)
                 .Include(a => a.Bids)
+                .Include(a => a.Images)
                 .FirstOrDefaultAsync(a => a.AuctionId == auctionId);
 
             if (auction == null)
@@ -152,12 +136,12 @@ namespace AuctionHouse.API.Services
             return MapToAuctionResponseDto(auction);
         }
 
-        public async Task<List<AuctionListDto>> GetAuctionsAsync(int page = 1, int pageSize = 20, string category = null, string search = null)
+        public async Task<List<AuctionListDto>> GetAuctionsAsync(int page = 1, int pageSize = 20, string? category = null, string? search = null)
         {
             var query = _context.Auctions
                 .Include(a => a.Seller)
-                .Include(a => a.Images)
                 .Include(a => a.Bids)
+                .Include(a => a.Images)
                 .Where(a => a.IsActive);
 
             if (!string.IsNullOrEmpty(category))
@@ -183,8 +167,8 @@ namespace AuctionHouse.API.Services
         {
             var auctions = await _context.Auctions
                 .Include(a => a.Seller)
-                .Include(a => a.Images)
                 .Include(a => a.Bids)
+                .Include(a => a.Images)
                 .Where(a => a.SellerId == sellerId)
                 .OrderByDescending(a => a.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -388,8 +372,6 @@ namespace AuctionHouse.API.Services
                 .Include(w => w.Auction)
                     .ThenInclude(a => a.Seller)
                 .Include(w => w.Auction)
-                    .ThenInclude(a => a.Images)
-                .Include(w => w.Auction)
                     .ThenInclude(a => a.Bids)
                 .Where(w => w.UserId == userId)
                 .Select(w => w.Auction)
@@ -428,14 +410,6 @@ namespace AuctionHouse.API.Services
                     LastName = auction.Seller.LastName,
                     Email = auction.Seller.Email
                 },
-                Images = auction.Images?.Select(img => new AuctionImageDto
-                {
-                    ImageId = img.ImageId,
-                    ImageUrl = img.ImageUrl,
-                    AltText = img.AltText,
-                    IsPrimary = img.IsPrimary,
-                    DisplayOrder = img.DisplayOrder
-                }).OrderBy(img => img.DisplayOrder).ToList() ?? new List<AuctionImageDto>(),
                 TotalBids = auction.Bids?.Count ?? 0,
                 TimeRemaining = timeRemaining > TimeSpan.Zero ? timeRemaining : TimeSpan.Zero,
                 Status = status,
@@ -447,7 +421,21 @@ namespace AuctionHouse.API.Services
                 AuctionType = auction.AuctionType ?? "Standard",
                 AuthenticityGuarantee = auction.AuthenticityGuarantee,
                 AcceptReturns = auction.AcceptReturns,
-                PremiumListing = auction.PremiumListing
+                PremiumListing = auction.PremiumListing,
+
+                // Image properties
+                Images = auction.Images?.Select(img => new ImageResponseDto
+                {
+                    ImageId = img.ImageId,
+                    AuctionId = img.AuctionId,
+                    ImageUrl = img.ImageUrl,
+                    AltText = img.AltText,
+                    IsPrimary = img.IsPrimary,
+                    DisplayOrder = img.DisplayOrder,
+                    CreatedAt = img.CreatedAt
+                }).ToList() ?? new List<ImageResponseDto>(),
+                PrimaryImageUrl = auction.PrimaryImageUrl,
+                ImageUrls = auction.ImageUrls
             };
         }
 
@@ -455,8 +443,6 @@ namespace AuctionHouse.API.Services
         {
             var timeRemaining = auction.EndTime - DateTime.UtcNow;
             var status = GetAuctionStatus(auction);
-            var primaryImage = auction.Images?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl 
-                              ?? auction.Images?.OrderBy(img => img.DisplayOrder).FirstOrDefault()?.ImageUrl;
 
             return new AuctionListDto
             {
@@ -470,7 +456,6 @@ namespace AuctionHouse.API.Services
                 IsActive = auction.IsActive,
                 IsFeatured = auction.IsFeatured,
                 ViewCount = auction.ViewCount,
-                PrimaryImageUrl = primaryImage ?? "",
                 TotalBids = auction.Bids?.Count ?? 0,
                 TimeRemaining = timeRemaining > TimeSpan.Zero ? timeRemaining : TimeSpan.Zero,
                 Status = status,
@@ -480,7 +465,8 @@ namespace AuctionHouse.API.Services
                     FirstName = auction.Seller.FirstName,
                     LastName = auction.Seller.LastName,
                     Email = auction.Seller.Email
-                }
+                },
+                PrimaryImageUrl = auction.PrimaryImageUrl
             };
         }
 

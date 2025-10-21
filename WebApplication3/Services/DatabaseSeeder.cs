@@ -229,24 +229,7 @@ namespace AuctionHouse.API.Services
             _context.Auctions.AddRange(auctions);
             await _context.SaveChangesAsync();
 
-            // Add sample images for auctions
-            var auctionImages = new List<AuctionImage>();
-            for (int i = 0; i < auctions.Count; i++)
-            {
-                auctionImages.Add(new AuctionImage
-                {
-                    AuctionId = auctions[i].AuctionId,
-                    ImageUrl = $"https://via.placeholder.com/400x300?text=Auction+{i + 1}",
-                    AltText = $"Primary image for {auctions[i].Title}",
-                    IsPrimary = true,
-                    DisplayOrder = 0
-                });
-            }
-
-            _context.AuctionImages.AddRange(auctionImages);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Created {Count} sample auctions with images", auctions.Count);
+            _logger.LogInformation("Created {Count} sample auctions", auctions.Count);
             return auctions;
         }
 

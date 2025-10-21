@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using WebApplication3.DTOs;
 
 namespace AuctionHouse.API.DTOs
 {
@@ -40,8 +41,6 @@ namespace AuctionHouse.API.DTOs
 
         public bool IsFeatured { get; set; } = false;
 
-        public List<CreateAuctionImageDto> Images { get; set; } = new List<CreateAuctionImageDto>();
-
         // New fields to match frontend
         [StringLength(1000, ErrorMessage = "Tags cannot exceed 1000 characters")]
         public string Tags { get; set; } = string.Empty;
@@ -66,21 +65,6 @@ namespace AuctionHouse.API.DTOs
         public bool AuthenticityGuarantee { get; set; } = false;
         public bool AcceptReturns { get; set; } = false;
         public bool PremiumListing { get; set; } = false;
-    }
-
-    public class CreateAuctionImageDto
-    {
-        [Required(ErrorMessage = "Image URL is required")]
-        [StringLength(500, ErrorMessage = "Image URL cannot exceed 500 characters")]
-        public string ImageUrl { get; set; } = string.Empty;
-
-        [StringLength(200, ErrorMessage = "Alt text cannot exceed 200 characters")]
-        public string AltText { get; set; } = string.Empty;
-
-        public bool IsPrimary { get; set; } = false;
-
-        [Range(0, 999, ErrorMessage = "Display order must be between 0 and 999")]
-        public int DisplayOrder { get; set; } = 0;
     }
 
     public class UpdateAuctionDto
@@ -134,7 +118,6 @@ namespace AuctionHouse.API.DTOs
         public int ViewCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public SellerInfoDto Seller { get; set; } = new SellerInfoDto();
-        public List<AuctionImageDto> Images { get; set; } = new List<AuctionImageDto>();
         public int TotalBids { get; set; }
         public TimeSpan TimeRemaining { get; set; }
         public string Status { get; set; } = "Active"; // "Active", "Ended", "Upcoming"
@@ -147,15 +130,11 @@ namespace AuctionHouse.API.DTOs
         public bool AuthenticityGuarantee { get; set; }
         public bool AcceptReturns { get; set; }
         public bool PremiumListing { get; set; }
-    }
 
-    public class AuctionImageDto
-    {
-        public int ImageId { get; set; }
-        public string ImageUrl { get; set; } = string.Empty;
-        public string AltText { get; set; } = string.Empty;
-        public bool IsPrimary { get; set; }
-        public int DisplayOrder { get; set; }
+        // Image properties
+        public List<ImageResponseDto> Images { get; set; } = new List<ImageResponseDto>();
+        public string? PrimaryImageUrl { get; set; }
+        public List<string> ImageUrls { get; set; } = new List<string>();
     }
 
     public class SellerInfoDto
@@ -178,11 +157,13 @@ namespace AuctionHouse.API.DTOs
         public bool IsActive { get; set; }
         public bool IsFeatured { get; set; }
         public int ViewCount { get; set; }
-        public string PrimaryImageUrl { get; set; } = string.Empty;
         public int TotalBids { get; set; }
         public TimeSpan TimeRemaining { get; set; }
         public string Status { get; set; } = "Active";
         public SellerInfoDto Seller { get; set; } = new SellerInfoDto();
+
+        // Image properties
+        public string? PrimaryImageUrl { get; set; }
     }
 
     public class PlaceBidDto
@@ -214,7 +195,6 @@ namespace AuctionHouse.API.DTOs
         public DateTime AuctionEndTime { get; set; }
         public decimal AuctionCurrentPrice { get; set; }
         public string AuctionStatus { get; set; } = string.Empty;
-        public string PrimaryImageUrl { get; set; } = string.Empty;
     }
 
     public class WinningBidDto
@@ -226,7 +206,6 @@ namespace AuctionHouse.API.DTOs
         public DateTime AuctionEndTime { get; set; }
         public string SellerName { get; set; } = string.Empty;
         public string SellerEmail { get; set; } = string.Empty;
-        public string PrimaryImageUrl { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string ShippingInfo { get; set; } = string.Empty;
     }

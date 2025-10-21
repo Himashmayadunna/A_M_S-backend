@@ -5,6 +5,7 @@ using System.Text;
 using System.Security.Claims;
 using AuctionHouse.API.Data;
 using AuctionHouse.API.Services;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,6 +125,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IBiddingService, BiddingService>();
+builder.Services.AddScoped<WebApplication3.Services.IImageService, WebApplication3.Services.ImageService>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
 var app = builder.Build();
@@ -184,6 +186,17 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Configure static file serving for uploaded images
+var uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+Directory.CreateDirectory(Path.Combine(uploadsPath, "auctions"));
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 app.MapControllers();
 

@@ -114,16 +114,27 @@ namespace AuctionHouse.API.Data
                 entity.Property(e => e.AltText)
                     .HasMaxLength(200);
 
-                entity.Property(e => e.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.IsPrimary)
+                    .IsRequired()
+                    .HasDefaultValue(false);
 
-                entity.HasIndex(e => new { e.AuctionId, e.IsPrimary });
+                entity.Property(e => e.DisplayOrder)
+                    .IsRequired()
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("GETUTCDATE()");
 
                 // Foreign key relationship with Auction
                 entity.HasOne(ai => ai.Auction)
                     .WithMany(a => a.Images)
                     .HasForeignKey(ai => ai.AuctionId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                // Index for efficient queries
+                entity.HasIndex(e => new { e.AuctionId, e.IsPrimary });
+                entity.HasIndex(e => e.DisplayOrder);
             });
 
             // Configure Bid entity

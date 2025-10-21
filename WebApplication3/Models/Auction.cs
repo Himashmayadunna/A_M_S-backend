@@ -79,14 +79,24 @@ namespace AuctionHouse.API.Models
         public bool AcceptReturns { get; set; } = false;
         public bool PremiumListing { get; set; } = false;
 
-        // Navigation Properties
-        [ForeignKey("SellerId")]
-        public User Seller { get; set; }
+    // Navigation Properties
+    [ForeignKey("SellerId")]
+    public User Seller { get; set; }
 
-        public ICollection<AuctionImage> Images { get; set; } = new List<AuctionImage>();
-        public ICollection<Bid> Bids { get; set; } = new List<Bid>();
-        public ICollection<WatchlistItem> WatchlistItems { get; set; } = new List<WatchlistItem>();
-    }
+    public ICollection<Bid> Bids { get; set; } = new List<Bid>();
+    public ICollection<WatchlistItem> WatchlistItems { get; set; } = new List<WatchlistItem>();
+    public ICollection<AuctionImage> Images { get; set; } = new List<AuctionImage>();
+
+    // Computed Properties
+    [NotMapped]
+    public string? PrimaryImageUrl => Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl 
+                                      ?? Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl;
+
+    [NotMapped]
+    public List<string> ImageUrls => Images?.OrderBy(i => i.DisplayOrder)
+                                            .Select(i => i.ImageUrl)
+                                            .ToList() ?? new List<string>();
+}
 
     public class AuctionImage
     {
@@ -98,10 +108,10 @@ namespace AuctionHouse.API.Models
 
         [Required]
         [StringLength(500)]
-        public string ImageUrl { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
 
         [StringLength(200)]
-        public string AltText { get; set; }
+        public string? AltText { get; set; }
 
         public bool IsPrimary { get; set; } = false;
 
@@ -109,9 +119,9 @@ namespace AuctionHouse.API.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation Properties
+        // Navigation Property
         [ForeignKey("AuctionId")]
-        public Auction Auction { get; set; }
+        public Auction Auction { get; set; } = null!;
     }
 
     public class Bid
